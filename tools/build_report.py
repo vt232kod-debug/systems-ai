@@ -168,6 +168,11 @@ def render(doc, md_text, base_dir):
             i += 1
             continue
 
+        # горизонтальна лінія markdown (---, ***, ___) — візуальний роздільник, у .docx не потрібен
+        if re.fullmatch(r"(-{3,}|\*{3,}|_{3,})", stripped):
+            i += 1
+            continue
+
         # заголовки
         if stripped.startswith("### "):
             para(doc, stripped[4:].strip(), bold=True, size=13, space_after=4)

@@ -20,7 +20,7 @@ build() {  # dir num theme prefix discipline
   fi
   echo "→ збираю $prefix-ЛР-$num  ($(basename "$dir"))"
   "$PY" "$GEN" --dir "$dir" --num "$num" --theme "$theme" \
-      --prefix "$prefix" --discipline "$disc" --teacher "$TEACHER" "${repo_arg[@]}" 2>&1 | sed 's/^/   /'
+      --prefix "$prefix" --discipline "$disc" --teacher "$TEACHER" ${repo_arg[@]+"${repo_arg[@]}"} 2>&1 | sed 's/^/   /'
 }
 
 D_SSHI="Системи штучного інтелекту"
