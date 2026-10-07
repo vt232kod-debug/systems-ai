@@ -131,13 +131,14 @@ def add_table(doc, rows):
     table = doc.add_table(rows=0, cols=cols)
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = True
     for ri, row in enumerate(rows):
         cells = table.add_row().cells
         for ci in range(cols):
             text = row[ci] if ci < len(row) else ""
             cells[ci].text = ""
             run = cells[ci].paragraphs[0].add_run(text.replace("**", ""))
-            run.font.size = Pt(11)
+            run.font.size = Pt(11 if cols <= 4 else 9)
             run.bold = ri == 0
             cells[ci].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
@@ -145,7 +146,7 @@ def add_table(doc, rows):
 
 def add_picture(doc, path, caption, counter):
     # агент міг сам написати "Рисунок N — ..." у підписі; прибираємо, щоб не дублювалось
-    caption = re.sub(r"^\s*(Рис(унок|\.)?)\s*\d*\s*[—\-–:]*\s*", "", caption, flags=re.I).strip()
+    caption = re.sub(r"^\s*рис(унок|\.)?\s*\d*\s*[.,—\-–:]*\s*", "", caption, flags=re.I).strip()
     if not os.path.exists(path):
         para(doc, f"[рисунок не знайдено: {os.path.basename(path)}]", align="center", italic=True)
         return counter
@@ -199,19 +200,28 @@ def render(doc, md_text, base_dir):
             continue
 
         # рисунок
-        m = re.match(r"!\[([^\]]*)\]\(([^)]+)\)", stripped)
+        m = re.match(r"^!\[(.*)\]\((.+)\)\s*$", stripped)
         if m:
             fig = add_picture(doc, os.path.join(base_dir, m.group(2)), m.group(1), fig)
             i += 1
             continue
 
         # таблиця
-        if stripped.startswith("|") and stripped.endswith("|"):
+        if stripped.startswith("|"):
             rows = []
             while i < len(lines) and lines[i].strip().startswith("|"):
                 cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
-                if not all(re.fullmatch(r":?-{2,}:?", c) for c in cells):
-                    rows.append(cells)
+                is_sep = cells and all(re.fullmatch(r":?-{2,}:?", c) for c in cells if c)
+                if not is_sep:
+                    width = len(rows[0]) if rows else len(cells)
+                    if rows and (len(cells) < width or not cells[0]):
+                        # перенесення рядка таблиці: доклеюємо текст до попереднього рядка
+                        text = " ".join(c for c in cells if c)
+                        if text:
+                            idx = min(len(rows[-1]) - 1, max(0, len(cells) - 1))
+                            rows[-1][idx] = (rows[-1][idx] + " " + text).strip()
+                    else:
+                        rows.append(cells)
                 i += 1
             if rows:
                 add_table(doc, rows)
@@ -232,6 +242,7 @@ def render(doc, md_text, base_dir):
             continue
 
         # звичайний абзац (склеюємо до порожнього рядка)
+        start = i
         buf = []
         while i < len(lines) and lines[i].strip() and not re.match(
             r"^(#{1,3} |```|!\[|\||[-*] |\d+[.)] )", lines[i].strip()
@@ -240,6 +251,11 @@ def render(doc, md_text, base_dir):
             i += 1
         if buf:
             rich_para(doc, " ".join(buf))
+        if i == start:
+            # рядок схожий на таблицю/картинку, але не розпізнаний жодною гілкою —
+            # виводимо як звичайний текст і ОБОВʼЯЗКОВО рухаємось далі (інакше вічний цикл)
+            rich_para(doc, stripped)
+            i += 1
 
 
 def main():

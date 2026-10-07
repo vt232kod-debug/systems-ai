@@ -1,0 +1,84 @@
+==============================================================================
+FIS (текстовий експорт): water_mixer
+==============================================================================
+Нечітке керування кранами гарячої і холодної води змішувача.
+Кут повороту крана: [-90; 90] градусів, вправо = збільшити потік
+(діапазон задано умовою задачі). Діапазони входів і типи ФН
+методичка не задає — обрані самостійно, обґрунтування у звіті.
+
+[System]
+Name        = water_mixer
+Type        = mamdani
+NumInputs   = 2
+NumOutputs  = 2
+NumRules    = 11
+AndMethod   = min
+OrMethod    = max
+ImpMethod   = min
+AggMethod   = max
+DefuzzMethod= centroid
+
+[Input1]
+Name  = t
+Range = [0.0 100.0]
+NumMFs= 5
+# температура води, °C; терми: cold=холодна, cool=прохолодна, warm=тепла, notveryhot=не дуже гаряча, hot=гаряча
+MF1 = 'cold':'gaussmf',[10.6165 0]   # холодна
+MF2 = 'cool':'gaussmf',[10.6165 25]   # прохолодна
+MF3 = 'warm':'gaussmf',[10.6165 50]   # тепла
+MF4 = 'notveryhot':'gaussmf',[10.6165 75]   # не дуже гаряча
+MF5 = 'hot':'gaussmf',[10.6165 100]   # гаряча
+
+[Input2]
+Name  = p
+Range = [0.0 100.0]
+NumMFs= 3
+# напір (витрата), % від максимуму; терми: weak=слабий, notverystrong=не дуже сильний, strong=сильний
+MF1 = 'weak':'trimf',[-50 0 50]   # слабий
+MF2 = 'notverystrong':'trimf',[0 50 100]   # не дуже сильний
+MF3 = 'strong':'trimf',[50 100 150]   # сильний
+
+[Output1]
+Name  = hot_angle
+Range = [-90.0 90.0]
+NumMFs= 7
+# кут повороту крана гарячої води, град
+MF1 = 'BL':'trimf',[-120 -90 -60]   # великий кут вліво
+MF2 = 'ML':'trimf',[-90 -60 -30]   # середній кут вліво
+MF3 = 'SL':'trimf',[-60 -30 0]   # невеликий кут вліво
+MF4 = 'Z':'trimf',[-30 0 30]   # залишити без змін
+MF5 = 'SR':'trimf',[0 30 60]   # невеликий кут вправо
+MF6 = 'MR':'trimf',[30 60 90]   # середній кут вправо
+MF7 = 'BR':'trimf',[60 90 120]   # великий кут вправо
+
+[Output2]
+Name  = cold_angle
+Range = [-90.0 90.0]
+NumMFs= 7
+# кут повороту крана холодної води, град
+MF1 = 'BL':'trimf',[-120 -90 -60]   # великий кут вліво
+MF2 = 'ML':'trimf',[-90 -60 -30]   # середній кут вліво
+MF3 = 'SL':'trimf',[-60 -30 0]   # невеликий кут вліво
+MF4 = 'Z':'trimf',[-30 0 30]   # залишити без змін
+MF5 = 'SR':'trimf',[0 30 60]   # невеликий кут вправо
+MF6 = 'MR':'trimf',[30 60 90]   # середній кут вправо
+MF7 = 'BR':'trimf',[60 90 120]   # великий кут вправо
+
+[Rules]
+# формат: антецедент => консеквент (вага)
+ 1. t=hot        and p=strong        => hot_angle=ML, cold_angle=MR  (1)
+ 2. t=hot        and p=notverystrong => hot_angle=Z,  cold_angle=MR  (1)
+ 3. t=notveryhot and p=strong        => hot_angle=SL, cold_angle=Z   (1)
+ 4. t=notveryhot and p=weak          => hot_angle=SR, cold_angle=SR  (1)
+ 5. t=warm       and p=notverystrong => hot_angle=Z,  cold_angle=Z   (1)
+ 6. t=cool       and p=strong        => hot_angle=MR, cold_angle=ML  (1)
+ 7. t=cool       and p=notverystrong => hot_angle=MR, cold_angle=SL  (1)
+ 8. t=cold       and p=weak          => hot_angle=BR, cold_angle=Z   (1)
+ 9. t=cold       and p=strong        => hot_angle=ML, cold_angle=MR  (1)   # буквально за методичкою, суперечить фізиці
+10. t=warm       and p=strong        => hot_angle=SL, cold_angle=SL  (1)
+11. t=warm       and p=weak          => hot_angle=SR, cold_angle=SR  (1)
+
+[Notes]
+- Правила 2, 3, 8 методички згадують лише один кран. Другий кран у цих правилах отримує терм Z («залишити в своєму положенні») — інакше scikit-fuzzy/MATLAB не змогли б дефазифікувати цей вихід.
+- Правило 9 («вода холодна і напір сильний -> гарячу вліво, холодну вправо») збігається з правилом 1 для гарячої води і суперечить здоровому глузду; реалізовано буквально, розбіжність описана у звіті.
+- База правил покриває 11 із 15 комбінацій термів; не покриті (cold, notverystrong), (cool, weak), (notveryhot, notverystrong), (hot, weak).
