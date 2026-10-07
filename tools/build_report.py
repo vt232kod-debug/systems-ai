@@ -22,6 +22,8 @@ from docx.shared import Cm, Pt
 STUDENT = "Камінський Олексій Дмитрович"
 GROUP = "ВТ-23-2"
 DISCIPLINE = "Системи штучного інтелекту"
+PREFIX = "СШІ"
+REPO = None
 TEACHER = "____________________"
 CITY_YEAR = "Житомир – 2026"
 
@@ -100,6 +102,16 @@ def title_page(doc, num, theme):
         para(doc, space_after=0)
     para(doc, CITY_YEAR, align="center", space_after=0)
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+    if REPO:
+        # методички ЛР4/5/7 прямо вимагають посилання на репозиторій у кожному звіті
+        p_repo = doc.add_paragraph()
+        p_repo.paragraph_format.space_after = Pt(10)
+        r1 = p_repo.add_run("Репозиторій з кодом роботи: ")
+        r1.bold = True
+        r1.font.size = Pt(13)
+        r2 = p_repo.add_run(REPO)
+        r2.font.size = Pt(13)
+        r2.font.name = "Courier New"
 
 
 def add_code(doc, lines, mono_size=9):
@@ -132,6 +144,8 @@ def add_table(doc, rows):
 
 
 def add_picture(doc, path, caption, counter):
+    # агент міг сам написати "Рисунок N — ..." у підписі; прибираємо, щоб не дублювалось
+    caption = re.sub(r"^\s*(Рис(унок|\.)?)\s*\d*\s*[—\-–:]*\s*", "", caption, flags=re.I).strip()
     if not os.path.exists(path):
         para(doc, f"[рисунок не знайдено: {os.path.basename(path)}]", align="center", italic=True)
         return counter
@@ -235,12 +249,21 @@ def main():
     ap.add_argument("--theme", required=True)
     ap.add_argument("--src", default="report_content.md")
     ap.add_argument("--teacher", default=None)
+    ap.add_argument("--discipline", default=None, help="назва дисципліни на титулці")
+    ap.add_argument("--prefix", default=None, help="префікс імені файлу, напр. СШІ або МАПЗ")
+    ap.add_argument("--repo", default=None, help="посилання на GitHub-репозиторій (вимога методичок)")
     ap.add_argument("--no-pdf", action="store_true")
     args = ap.parse_args()
 
-    global TEACHER
+    global TEACHER, DISCIPLINE, PREFIX, REPO
     if args.teacher:
         TEACHER = args.teacher
+    if args.discipline:
+        DISCIPLINE = args.discipline
+    if args.prefix:
+        PREFIX = args.prefix
+    if args.repo:
+        REPO = args.repo
 
     base = os.path.abspath(args.dir)
     md_path = os.path.join(base, args.src)
@@ -252,7 +275,7 @@ def main():
     with open(md_path, encoding="utf-8") as f:
         render(doc, f.read(), base)
 
-    out_name = f"СШІ-ЛР-{args.num}-{GROUP}-Камінський.docx"
+    out_name = f"{PREFIX}-ЛР-{args.num}-{GROUP}-Камінський.docx"
     out_path = os.path.join(base, out_name)
     doc.save(out_path)
     print("Збережено", out_path)
