@@ -7,20 +7,24 @@ PY="$HOME/.venvs/systems-ai/bin/python"
 GEN="/Users/alex/Programs/Univercity/Systems AI/tools/build_report.py"
 SSHI="/Users/alex/Programs/Univercity/Systems AI"
 MAPZ="/Users/alex/Programs/Univercity/Modeling and analysis of software"
-TEACHER="${TEACHER:-____________________}"
+TEACHER_SSHI="${TEACHER_SSHI:-Фант М.О.}"
+TEACHER_MAPZ="${TEACHER_MAPZ:-Власенко О.В.}"
 REPO_SSHI="https://github.com/vt232kod-debug/systems-ai"
 
 build() {  # dir num theme prefix discipline
   local dir="$1" num="$2" theme="$3" prefix="$4" disc="$5"
-  local repo_arg=()
-  [ "$prefix" = "СШІ" ] && repo_arg=(--repo "$REPO_SSHI")
+  local repo_arg=() teacher="$TEACHER_MAPZ"
+  if [ "$prefix" = "СШІ" ]; then
+    repo_arg=(--repo "$REPO_SSHI")
+    teacher="$TEACHER_SSHI"
+  fi
   if [ ! -f "$dir/report_content.md" ]; then
     echo "— пропуск: немає $dir/report_content.md"
     return
   fi
   echo "→ збираю $prefix-ЛР-$num  ($(basename "$dir"))"
   "$PY" "$GEN" --dir "$dir" --num "$num" --theme "$theme" \
-      --prefix "$prefix" --discipline "$disc" --teacher "$TEACHER" ${repo_arg[@]+"${repo_arg[@]}"} 2>&1 | sed 's/^/   /'
+      --prefix "$prefix" --discipline "$disc" --teacher "$teacher" ${repo_arg[@]+"${repo_arg[@]}"} 2>&1 | sed 's/^/   /'
 }
 
 D_SSHI="Системи штучного інтелекту"

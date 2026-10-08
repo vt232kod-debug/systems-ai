@@ -88,7 +88,7 @@ for _ in range(7):
     p(space_after=0)
 p("Виконав: студент групи ВТ-23-2", align="right", space_after=0)
 p("Камінський Олексій Дмитрович", align="right", space_after=12)
-p("Перевірив: ____________________", align="right", space_after=0)
+p("Перевірив: Фант М.О.", align="right", space_after=0)
 for _ in range(5):
     p(space_after=0)
 p("Житомир – 2026", align="center", space_after=0)
