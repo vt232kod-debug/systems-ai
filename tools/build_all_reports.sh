@@ -10,6 +10,9 @@ MAPZ="/Users/alex/Programs/Univercity/Modeling and analysis of software"
 TEACHER_SSHI="${TEACHER_SSHI:-Фант М.О.}"
 TEACHER_MAPZ="${TEACHER_MAPZ:-Власенко О.В.}"
 REPO_SSHI="https://github.com/vt232kod-debug/systems-ai"
+REPO_MAPZ="https://github.com/vt232kod-debug/software-modeling"
+VARIANT_MAPZ="Варіант предметної області: «Півот» — вебсервіс і браузерне розширення
+для вивчення іноземної мови на власному контенті користувача"
 
 build() {  # dir num theme prefix discipline
   local dir="$1" num="$2" theme="$3" prefix="$4" disc="$5"
@@ -17,6 +20,8 @@ build() {  # dir num theme prefix discipline
   if [ "$prefix" = "СШІ" ]; then
     repo_arg=(--repo "$REPO_SSHI")
     teacher="$TEACHER_SSHI"
+  else
+    repo_arg=(--repo "$REPO_MAPZ" --variant "$VARIANT_MAPZ")
   fi
   if [ ! -f "$dir/report_content.md" ]; then
     echo "— пропуск: немає $dir/report_content.md"

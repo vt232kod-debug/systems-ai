@@ -24,6 +24,7 @@ GROUP = "ВТ-23-2"
 DISCIPLINE = "Системи штучного інтелекту"
 PREFIX = "СШІ"
 REPO = None
+VARIANT = None
 TEACHER = "____________________"
 CITY_YEAR = "Житомир – 2026"
 
@@ -93,6 +94,11 @@ def title_page(doc, num, theme):
     para(doc, f"з дисципліни «{DISCIPLINE}»", align="center", space_after=18)
     for line in theme.split("\n"):
         para(doc, line, align="center", bold=True, space_after=0)
+    if VARIANT:
+        # методичка вимагає зазначати варіант предметної області на титулці
+        para(doc, space_after=0)
+        for line in VARIANT.split("\n"):
+            para(doc, line, align="center", italic=True, size=13, space_after=0)
     for _ in range(7):
         para(doc, space_after=0)
     para(doc, f"Виконав: студент групи {GROUP}", align="right", space_after=0)
@@ -273,10 +279,11 @@ def main():
     ap.add_argument("--discipline", default=None, help="назва дисципліни на титулці")
     ap.add_argument("--prefix", default=None, help="префікс імені файлу, напр. СШІ або МАПЗ")
     ap.add_argument("--repo", default=None, help="посилання на GitHub-репозиторій (вимога методичок)")
+    ap.add_argument("--variant", default=None, help="варіант предметної області для титулки")
     ap.add_argument("--no-pdf", action="store_true")
     args = ap.parse_args()
 
-    global TEACHER, DISCIPLINE, PREFIX, REPO
+    global TEACHER, DISCIPLINE, PREFIX, REPO, VARIANT
     if args.teacher:
         TEACHER = args.teacher
     if args.discipline:
@@ -285,6 +292,8 @@ def main():
         PREFIX = args.prefix
     if args.repo:
         REPO = args.repo
+    if args.variant:
+        VARIANT = args.variant
 
     base = os.path.abspath(args.dir)
     md_path = os.path.join(base, args.src)
