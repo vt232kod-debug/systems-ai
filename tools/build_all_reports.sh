@@ -14,14 +14,18 @@ REPO_MAPZ="https://github.com/vt232kod-debug/software-modeling"
 VARIANT_MAPZ="Варіант предметної області: «Півот» — вебсервіс і браузерне розширення
 для вивчення іноземної мови на власному контенті користувача"
 
-build() {  # dir num theme prefix discipline
-  local dir="$1" num="$2" theme="$3" prefix="$4" disc="$5"
+build() {  # dir num theme prefix discipline [variant]
+  # 6-й аргумент: рядок «Варіант предметної області». Якщо переданий "-" —
+  # рядок не друкується (лаби 5,6,8 мають власні області з методички, не «Півот»).
+  local dir="$1" num="$2" theme="$3" prefix="$4" disc="$5" variant="${6:-$VARIANT_MAPZ}"
   local repo_arg=() teacher="$TEACHER_MAPZ"
   if [ "$prefix" = "СШІ" ]; then
     repo_arg=(--repo "$REPO_SSHI")
     teacher="$TEACHER_SSHI"
+  elif [ "$variant" = "-" ]; then
+    repo_arg=(--repo "$REPO_MAPZ")
   else
-    repo_arg=(--repo "$REPO_MAPZ" --variant "$VARIANT_MAPZ")
+    repo_arg=(--repo "$REPO_MAPZ" --variant "$variant")
   fi
   if [ ! -f "$dir/report_content.md" ]; then
     echo "— пропуск: немає $dir/report_content.md"
