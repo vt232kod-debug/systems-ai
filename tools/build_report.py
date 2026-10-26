@@ -12,9 +12,11 @@
 import argparse
 import os
 import re
+import struct
 import subprocess
 
 from docx import Document
+from docx.enum.section import WD_ORIENT, WD_SECTION
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.shared import Cm, Pt
@@ -150,15 +152,59 @@ def add_table(doc, rows):
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
 
 
+def png_size(path):
+    """Ширина й висота PNG у пікселях (без сторонніх залежностей)."""
+    try:
+        with open(path, "rb") as f:
+            head = f.read(33)
+        if head[:8] != b"\x89PNG\r\n\x1a\n":
+            return None
+        return struct.unpack(">II", head[16:24])
+    except Exception:
+        return None
+
+
+def _set_orientation(section, landscape):
+    """Перемикає орієнтацію секції, міняючи місцями ширину й висоту сторінки."""
+    w, h = section.page_width, section.page_height
+    if landscape:
+        section.orientation = WD_ORIENT.LANDSCAPE
+        section.page_width, section.page_height = max(w, h), min(w, h)
+        section.left_margin = section.right_margin = Cm(1.5)
+        section.top_margin = section.bottom_margin = Cm(1.5)
+    else:
+        section.orientation = WD_ORIENT.PORTRAIT
+        section.page_width, section.page_height = min(w, h), max(w, h)
+        section.left_margin = Cm(2.5)
+        section.right_margin = Cm(1.5)
+        section.top_margin = section.bottom_margin = Cm(2)
+
+
+# Поріг: ширший за це — рисунок стискається до нечитабельного на книжковій сторінці
+WIDE_PX = 1800
+
+
 def add_picture(doc, path, caption, counter):
     # агент міг сам написати "Рисунок N — ..." у підписі; прибираємо, щоб не дублювалось
     caption = re.sub(r"^\s*рис(унок|\.)?\s*\d*\s*[.,—\-–:]*\s*", "", caption, flags=re.I).strip()
     if not os.path.exists(path):
         para(doc, f"[рисунок не знайдено: {os.path.basename(path)}]", align="center", italic=True)
         return counter
-    doc.add_picture(path, width=Cm(15.5))
-    doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    para(doc, f"Рисунок {counter} — {caption}", align="center", italic=True, size=12, space_after=12)
+
+    size = png_size(path)
+    wide = bool(size and size[0] >= WIDE_PX)
+
+    if wide:
+        # власна альбомна сторінка: 25 см замість 15.5 — у 1.6 раза більший масштаб
+        _set_orientation(doc.add_section(WD_SECTION.NEW_PAGE), True)
+        doc.add_picture(path, width=Cm(25))
+        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para(doc, f"Рисунок {counter} — {caption}", align="center", italic=True, size=12, space_after=6)
+        _set_orientation(doc.add_section(WD_SECTION.NEW_PAGE), False)
+    else:
+        doc.add_picture(path, width=Cm(15.5))
+        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para(doc, f"Рисунок {counter} — {caption}", align="center", italic=True, size=12, space_after=12)
     return counter + 1
 
 
